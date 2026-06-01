@@ -132,31 +132,32 @@
   }
   .mobile-menu a:hover { color: var(--gold); }
 
-  /* ── HERO ── */
-  .hero {
-    position: relative; min-height: 100vh;
-    display: grid; grid-template-columns: 1fr 1.1fr; overflow: hidden;
+  /* ── HERO SEQUENCE (scroll-driven frame animation) ── */
+  #hero-seq {
+    height: calc(100vh + 3030px); /* 3030px = 30px × 101 frames of scroll space */
+    position: relative;
   }
-  .hero-bg-img {
+  #hero-sticky {
+    position: sticky; top: 0;
+    height: 100vh; overflow: hidden;
+    background: #0a0806;
+  }
+  #hero-canvas {
     position: absolute; inset: 0;
-    width: 100%; height: 100%; object-fit: cover; object-position: center; z-index: 0;
+    width: 100%; height: 100%;
+    display: block;
   }
   .hero-left {
+    position: absolute; inset: 0;
     display: flex; flex-direction: column; justify-content: flex-end;
-    padding: 0 64px 80px; position: relative; z-index: 2;
+    padding: 0 64px 80px; z-index: 2;
     text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 4px 24px rgba(0,0,0,0.7);
   }
-  /* Subtle gradient behind text column only — not a full-screen overlay */
   .hero-left::before {
     content: '';
     position: absolute; inset: 0;
-    background: linear-gradient(to right, rgba(10,8,6,0.52) 0%, transparent 100%);
-    z-index: -1;
-    pointer-events: none;
-  }
-  /* Hero elements start hidden — animated by Motion on load */
-  #hero-eyebrow, #hero-headline, #hero-body, #hero-actions, #hero-stats, #scroll-cue {
-    opacity: 0;
+    background: linear-gradient(to right, rgba(10,8,6,0.5) 0%, transparent 60%);
+    z-index: -1; pointer-events: none;
   }
   .hero-eyebrow {
     font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase;
@@ -200,7 +201,6 @@
   }
   .stat-number span { color: var(--gold); }
   .stat-label { font-size: 8px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(210,200,182,0.85); margin-top: 4px; }
-  .hero-right { position: relative; z-index: 2; }
   .scroll-cue {
     position: absolute; bottom: 40px; left: 64px;
     display: flex; align-items: center; gap: 12px; z-index: 3;
@@ -387,9 +387,7 @@
     nav.scrolled { padding: 16px 32px; }
     .nav-links, .nav-cta { display: none; }
     .nav-hamburger { display: flex; }
-    .hero { grid-template-columns: 1fr; }
-    .hero-right { display: none; }
-    .hero-left { padding: 120px 32px 80px; min-height: 100vh; }
+    .hero-left { padding: 120px 32px 80px; }
     .hero-stats { gap: 32px; margin-top: 48px; }
     .scroll-cue { left: 32px; }
     .section-featured { padding: 80px 32px; }
@@ -466,39 +464,40 @@
   </button>
 </nav>
 
-<!-- HERO -->
-<section class="hero" id="hero">
-  <img class="hero-bg-img" src="assets/herobackground.png" alt="Luxury property" id="hero-bg" />
-  <div class="hero-left">
-    <p class="hero-eyebrow" id="hero-eyebrow">Curated for the Exceptional</p>
-    <h1 class="hero-headline" id="hero-headline">
-      More Than<br>a Home.
-      <em>It's a Statement.</em>
-    </h1>
-    <p class="hero-body" id="hero-body">Exclusive properties in the world's most prestigious addresses — quietly listed, meticulously selected.</p>
-    <div class="hero-actions" id="hero-actions">
-      <a href="#" class="btn-primary">Explore Collection <span class="arrow">→</span></a>
-      <a href="#" class="btn-ghost">View Featured</a>
+<!-- HERO — scroll-driven frame sequence -->
+<section id="hero-seq">
+  <div id="hero-sticky">
+    <canvas id="hero-canvas"></canvas>
+    <div class="hero-left" id="hero-text">
+      <p class="hero-eyebrow">Curated for the Exceptional</p>
+      <h1 class="hero-headline">
+        More Than<br>a Home.
+        <em>It's a Statement.</em>
+      </h1>
+      <p class="hero-body">Exclusive properties in the world's most prestigious addresses — quietly listed, meticulously selected.</p>
+      <div class="hero-actions">
+        <a href="#" class="btn-primary">Explore Collection <span class="arrow">→</span></a>
+        <a href="#" class="btn-ghost">View Featured</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-item">
+          <div class="stat-number">150<span>+</span></div>
+          <div class="stat-label">Exclusive Properties</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">25<span>+</span></div>
+          <div class="stat-label">Global Destinations</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">$2<span>B+</span></div>
+          <div class="stat-label">In Sales Volume</div>
+        </div>
+      </div>
     </div>
-    <div class="hero-stats" id="hero-stats">
-      <div class="stat-item">
-        <div class="stat-number">150<span>+</span></div>
-        <div class="stat-label">Exclusive Properties</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">25<span>+</span></div>
-        <div class="stat-label">Global Destinations</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">$2<span>B+</span></div>
-        <div class="stat-label">In Sales Volume</div>
-      </div>
+    <div class="scroll-cue" id="scroll-cue">
+      <div class="scroll-line"></div>
+      <span class="scroll-text">Scroll to Discover</span>
     </div>
-  </div>
-  <div class="hero-right"></div>
-  <div class="scroll-cue" id="scroll-cue">
-    <div class="scroll-line"></div>
-    <span class="scroll-text">Scroll to Discover</span>
   </div>
 </section>
 
@@ -764,28 +763,67 @@
   }, { threshold: 0.12 });
 
   document.querySelectorAll('.sr').forEach(el => srObserver.observe(el));
-</script>
 
-<!-- Framer Motion — hero entrance + parallax only -->
-<script type="module">
-import { animate, scroll } from "https://cdn.jsdelivr.net/npm/motion@latest/+esm";
+  /* ── Hero frame sequence ── */
+  (function () {
+    const TOTAL   = 101;
+    const canvas  = document.getElementById('hero-canvas');
+    const ctx     = canvas.getContext('2d');
+    const heroSeq = document.getElementById('hero-seq');
+    const heroTxt = document.getElementById('hero-text');
+    const scrollCue = document.getElementById('scroll-cue');
 
-/* Hero entrance — explicit [from, to] so no current-value reading needed */
-const ease = [0.23, 1, 0.32, 1];
-animate('#hero-eyebrow',  { opacity: [0,1], y: [28,0]  }, { duration: 0.9, delay: 0.3,  easing: ease });
-animate('#hero-headline', { opacity: [0,1], y: [40,0]  }, { duration: 1.0, delay: 0.5,  easing: ease });
-animate('#hero-body',     { opacity: [0,1], y: [28,0]  }, { duration: 0.9, delay: 0.7,  easing: ease });
-animate('#hero-actions',  { opacity: [0,1], y: [20,0]  }, { duration: 0.8, delay: 0.9,  easing: ease });
-animate('#hero-stats',    { opacity: [0,1], y: [20,0]  }, { duration: 0.8, delay: 1.1,  easing: ease });
-animate('#scroll-cue',    { opacity: [0,1]             }, { duration: 0.8, delay: 1.5,  easing: 'ease-out' });
+    function pad(n) { return String(n).padStart(3, '0'); }
+    function src(n) { return 'assets/hero%20animation/frames/ezgif-frame-' + pad(n) + '.jpg'; }
 
-/* Hero parallax */
-const heroBg = document.getElementById('hero-bg');
-if (heroBg) {
-  scroll(({ y }) => {
-    heroBg.style.transform = `translateY(${y.progress * 100}px) scale(1.12)`;
-  }, { target: document.getElementById('hero') });
-}
+    /* Pre-load all frames; load in descending order so frame 101 arrives first */
+    const frames = new Array(TOTAL);
+    for (let i = TOTAL; i >= 1; i--) {
+      const img = new Image();
+      img.src = src(i);
+      frames[i - 1] = img;
+    }
+
+    /* Resize canvas to match viewport */
+    function resize() {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+      render(currentFrame);
+    }
+    window.addEventListener('resize', resize);
+
+    /* Draw a single frame — cover behaviour */
+    function render(num) {
+      const img = frames[num - 1];
+      if (!img || !img.complete || img.naturalWidth === 0) return;
+      const cw = canvas.width, ch = canvas.height;
+      const scale = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
+      const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
+      ctx.drawImage(img, (cw - w) / 2, (ch - h) / 2, w, h);
+    }
+
+    /* Draw frame 101 as soon as it loads (initial state) */
+    let currentFrame = TOTAL;
+    frames[TOTAL - 1].addEventListener('load', () => { resize(); });
+    if (frames[TOTAL - 1].complete) resize();
+    resize(); /* also fire immediately in case already cached */
+
+    /* Scroll handler */
+    window.addEventListener('scroll', function () {
+      const top        = heroSeq.offsetTop;
+      const scrollable = heroSeq.offsetHeight - window.innerHeight;
+      const progress   = Math.max(0, Math.min(1, (scrollY - top) / scrollable));
+
+      /* Reverse order: progress 0 → frame 101, progress 1 → frame 001 */
+      currentFrame = TOTAL - Math.round(progress * (TOTAL - 1));
+      render(currentFrame);
+
+      /* Text + cue fade out over first 20% of scroll */
+      const textAlpha = Math.max(0, 1 - progress / 0.2);
+      heroTxt.style.opacity    = textAlpha;
+      scrollCue.style.opacity  = Math.max(0, 1 - progress / 0.08);
+    }, { passive: true });
+  })();
 </script>
 
 </body>
