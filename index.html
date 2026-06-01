@@ -132,20 +132,31 @@
   }
   .mobile-menu a:hover { color: var(--gold); }
 
-  /* ── HERO SEQUENCE (scroll-driven frame animation) ── */
-  #hero-seq {
-    height: calc(100vh + 3030px); /* 3030px = 30px × 101 frames of scroll space */
+  /* ── HERO ── */
+  .hero {
     position: relative;
-  }
-  #hero-sticky {
-    position: sticky; top: 0;
-    height: 100vh; overflow: hidden;
+    min-height: 100vh;
+    overflow: hidden;
     background: #0a0806;
   }
-  #hero-canvas {
+  /* Full-screen intro video */
+  #hero-video {
     position: absolute; inset: 0;
     width: 100%; height: 100%;
-    display: block;
+    object-fit: cover;
+    z-index: 3;
+    transition: opacity 0.2s ease;
+  }
+  /* Static layer (background image + text) revealed after video */
+  #hero-static {
+    position: relative;
+    min-height: 100vh;
+  }
+  .hero-bg-img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center;
+    z-index: 0;
   }
   .hero-left {
     position: absolute; inset: 0;
@@ -159,6 +170,9 @@
     background: linear-gradient(to right, rgba(10,8,6,0.5) 0%, transparent 60%);
     z-index: -1; pointer-events: none;
   }
+  /* Text elements start invisible — Framer Motion animates them in after video */
+  #hero-eyebrow, #hero-headline, #hero-body,
+  #hero-actions, #hero-stats, #scroll-cue { opacity: 0; }
   .hero-eyebrow {
     font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase;
     color: var(--gold); margin-bottom: 28px;
@@ -387,6 +401,7 @@
     nav.scrolled { padding: 16px 32px; }
     .nav-links, .nav-cta { display: none; }
     .nav-hamburger { display: flex; }
+    #hero-static { min-height: 100vh; }
     .hero-left { padding: 120px 32px 80px; }
     .hero-stats { gap: 32px; margin-top: 48px; }
     .scroll-cue { left: 32px; }
@@ -464,22 +479,28 @@
   </button>
 </nav>
 
-<!-- HERO — scroll-driven frame sequence -->
-<section id="hero-seq">
-  <div id="hero-sticky">
-    <canvas id="hero-canvas"></canvas>
-    <div class="hero-left" id="hero-text">
-      <p class="hero-eyebrow">Curated for the Exceptional</p>
-      <h1 class="hero-headline">
+<!-- HERO -->
+<section class="hero" id="hero">
+  <!-- Intro video: autoplays, muted (required for autoplay), no controls -->
+  <video id="hero-video" autoplay muted playsinline preload="auto">
+    <source src="assets/hero%20animation%20video.mp4" type="video/mp4">
+  </video>
+
+  <!-- Static layer: background image + text, lives beneath the video -->
+  <div id="hero-static">
+    <img class="hero-bg-img" src="assets/herobackground.png" alt="" />
+    <div class="hero-left">
+      <p class="hero-eyebrow" id="hero-eyebrow">Curated for the Exceptional</p>
+      <h1 class="hero-headline" id="hero-headline">
         More Than<br>a Home.
         <em>It's a Statement.</em>
       </h1>
-      <p class="hero-body">Exclusive properties in the world's most prestigious addresses — quietly listed, meticulously selected.</p>
-      <div class="hero-actions">
+      <p class="hero-body" id="hero-body">Exclusive properties in the world's most prestigious addresses — quietly listed, meticulously selected.</p>
+      <div class="hero-actions" id="hero-actions">
         <a href="#" class="btn-primary">Explore Collection <span class="arrow">→</span></a>
         <a href="#" class="btn-ghost">View Featured</a>
       </div>
-      <div class="hero-stats">
+      <div class="hero-stats" id="hero-stats">
         <div class="stat-item">
           <div class="stat-number">150<span>+</span></div>
           <div class="stat-label">Exclusive Properties</div>
@@ -764,105 +785,50 @@
 
   document.querySelectorAll('.sr').forEach(el => srObserver.observe(el));
 
-  /* ── Hero frame sequence ── */
+  /* ── Hero video → image → text transition ── */
   (function () {
-    const TOTAL     = 101;
-    const canvas    = document.getElementById('hero-canvas');
-    const ctx       = canvas.getContext('2d');
-    const heroSeq   = document.getElementById('hero-seq');
-    const heroTxt   = document.getElementById('hero-text');
-    const scrollCue = document.getElementById('scroll-cue');
+    const video = document.getElementById('hero-video');
 
-    /* Promote canvas to its own GPU layer */
-    canvas.style.willChange = 'contents';
-
-    function pad(n) { return String(n).padStart(3, '0'); }
-    function src(n) { return 'assets/hero%20animation/frames/ezgif-frame-' + pad(n) + '.jpg'; }
-
-    /* Load images & convert to ImageBitmap for fast GPU-side drawImage */
-    const bitmaps = new Array(TOTAL).fill(null);
-    let   loaded  = 0;
-
-    function loadFrame(i) {
-      fetch(src(i))
-        .then(r => r.blob())
-        .then(b => createImageBitmap(b))
-        .then(bm => {
-          bitmaps[i - 1] = bm;
-          loaded++;
-          /* Draw frame 101 the moment it arrives */
-          if (i === TOTAL) renderFrame(TOTAL);
-        })
-        .catch(() => {
-          /* Fallback: plain Image if fetch/createImageBitmap unavailable */
-          const img = new Image();
-          img.onload = () => {
-            bitmaps[i - 1] = img;
-            loaded++;
-            if (i === TOTAL) renderFrame(TOTAL);
-          };
-          img.src = src(i);
-        });
+    function onVideoEnd() {
+      /* Instantly hide video — herobackground.png is already loaded beneath */
+      video.style.opacity = '0';
+      /* After the brief 0.2s CSS transition, remove it from paint entirely */
+      setTimeout(function () {
+        video.style.display = 'none';
+        /* Signal Framer Motion module to start text animations */
+        window._heroReady = true;
+        if (typeof window._runHeroAnim === 'function') window._runHeroAnim();
+      }, 220);
     }
 
-    /* Load in descending order so frame 101 (start state) arrives first */
-    for (let i = TOTAL; i >= 1; i--) loadFrame(i);
+    video.addEventListener('ended', onVideoEnd);
 
-    /* Resize canvas to viewport — keep pixel-perfect on resize */
-    function resize() {
-      canvas.width  = window.innerWidth;
-      canvas.height = window.innerHeight;
-      renderFrame(currentFrame);
-    }
-    window.addEventListener('resize', resize, { passive: true });
-
-    /* Cover-fit draw */
-    function renderFrame(num) {
-      const bm = bitmaps[num - 1];
-      if (!bm) return;
-      const cw = canvas.width, ch = canvas.height;
-      const sw = bm.width || bm.naturalWidth;
-      const sh = bm.height || bm.naturalHeight;
-      if (!sw || !sh) return;
-      const scale = Math.max(cw / sw, ch / sh);
-      ctx.drawImage(bm, (cw - sw * scale) / 2, (ch - sh * scale) / 2, sw * scale, sh * scale);
-    }
-
-    /* State updated by scroll, consumed by rAF loop */
-    let currentFrame = TOTAL;
-    let targetFrame  = TOTAL;
-    let targetAlpha  = 1;
-    let rafScheduled = false;
-
-    function tick() {
-      rafScheduled = false;
-      if (targetFrame !== currentFrame) {
-        currentFrame = targetFrame;
-        renderFrame(currentFrame);
-      }
-      heroTxt.style.opacity   = targetAlpha;
-      scrollCue.style.opacity = Math.max(0, targetAlpha * 5 - 4); /* fades faster */
-    }
-
-    window.addEventListener('scroll', function () {
-      const top      = heroSeq.offsetTop;
-      const scrollable = heroSeq.offsetHeight - window.innerHeight;
-      const progress = Math.max(0, Math.min(1, (scrollY - top) / scrollable));
-
-      /* Reverse: progress 0 → frame 101, progress 1 → frame 001 */
-      targetFrame = TOTAL - Math.round(progress * (TOTAL - 1));
-      targetAlpha = Math.max(0, 1 - progress / 0.2);
-
-      /* Batch all scroll events into one draw per display frame */
-      if (!rafScheduled) {
-        rafScheduled = true;
-        requestAnimationFrame(tick);
-      }
-    }, { passive: true });
-
-    /* Initial size */
-    resize();
+    /* Safety fallback: if video fails to play (blocked, slow network, etc.)
+       wait 8 s then reveal hero anyway */
+    setTimeout(function () {
+      if (video.style.display !== 'none') onVideoEnd();
+    }, 8000);
   })();
+</script>
+
+<!-- Framer Motion — hero text entrance after video ends -->
+<script type="module">
+import { animate } from "https://cdn.jsdelivr.net/npm/motion@latest/+esm";
+
+const ease = [0.23, 1, 0.32, 1];
+
+function runHeroAnim() {
+  animate('#hero-eyebrow',  { opacity: [0,1], y: [24,0] }, { duration: 0.8, delay: 0,    easing: ease });
+  animate('#hero-headline', { opacity: [0,1], y: [36,0] }, { duration: 1.0, delay: 0.15, easing: ease });
+  animate('#hero-body',     { opacity: [0,1], y: [24,0] }, { duration: 0.8, delay: 0.3,  easing: ease });
+  animate('#hero-actions',  { opacity: [0,1], y: [18,0] }, { duration: 0.7, delay: 0.45, easing: ease });
+  animate('#hero-stats',    { opacity: [0,1], y: [18,0] }, { duration: 0.7, delay: 0.6,  easing: ease });
+  animate('#scroll-cue',    { opacity: [0,1]            }, { duration: 0.6, delay: 0.9,  easing: 'ease-out' });
+}
+
+/* Run immediately if video already ended before this module loaded */
+window._runHeroAnim = runHeroAnim;
+if (window._heroReady) runHeroAnim();
 </script>
 
 </body>
