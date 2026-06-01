@@ -766,63 +766,102 @@
 
   /* ── Hero frame sequence ── */
   (function () {
-    const TOTAL   = 101;
-    const canvas  = document.getElementById('hero-canvas');
-    const ctx     = canvas.getContext('2d');
-    const heroSeq = document.getElementById('hero-seq');
-    const heroTxt = document.getElementById('hero-text');
+    const TOTAL     = 101;
+    const canvas    = document.getElementById('hero-canvas');
+    const ctx       = canvas.getContext('2d');
+    const heroSeq   = document.getElementById('hero-seq');
+    const heroTxt   = document.getElementById('hero-text');
     const scrollCue = document.getElementById('scroll-cue');
+
+    /* Promote canvas to its own GPU layer */
+    canvas.style.willChange = 'contents';
 
     function pad(n) { return String(n).padStart(3, '0'); }
     function src(n) { return 'assets/hero%20animation/frames/ezgif-frame-' + pad(n) + '.jpg'; }
 
-    /* Pre-load all frames; load in descending order so frame 101 arrives first */
-    const frames = new Array(TOTAL);
-    for (let i = TOTAL; i >= 1; i--) {
-      const img = new Image();
-      img.src = src(i);
-      frames[i - 1] = img;
+    /* Load images & convert to ImageBitmap for fast GPU-side drawImage */
+    const bitmaps = new Array(TOTAL).fill(null);
+    let   loaded  = 0;
+
+    function loadFrame(i) {
+      fetch(src(i))
+        .then(r => r.blob())
+        .then(b => createImageBitmap(b))
+        .then(bm => {
+          bitmaps[i - 1] = bm;
+          loaded++;
+          /* Draw frame 101 the moment it arrives */
+          if (i === TOTAL) renderFrame(TOTAL);
+        })
+        .catch(() => {
+          /* Fallback: plain Image if fetch/createImageBitmap unavailable */
+          const img = new Image();
+          img.onload = () => {
+            bitmaps[i - 1] = img;
+            loaded++;
+            if (i === TOTAL) renderFrame(TOTAL);
+          };
+          img.src = src(i);
+        });
     }
 
-    /* Resize canvas to match viewport */
+    /* Load in descending order so frame 101 (start state) arrives first */
+    for (let i = TOTAL; i >= 1; i--) loadFrame(i);
+
+    /* Resize canvas to viewport — keep pixel-perfect on resize */
     function resize() {
       canvas.width  = window.innerWidth;
       canvas.height = window.innerHeight;
-      render(currentFrame);
+      renderFrame(currentFrame);
     }
-    window.addEventListener('resize', resize);
+    window.addEventListener('resize', resize, { passive: true });
 
-    /* Draw a single frame — cover behaviour */
-    function render(num) {
-      const img = frames[num - 1];
-      if (!img || !img.complete || img.naturalWidth === 0) return;
+    /* Cover-fit draw */
+    function renderFrame(num) {
+      const bm = bitmaps[num - 1];
+      if (!bm) return;
       const cw = canvas.width, ch = canvas.height;
-      const scale = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
-      const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
-      ctx.drawImage(img, (cw - w) / 2, (ch - h) / 2, w, h);
+      const sw = bm.width || bm.naturalWidth;
+      const sh = bm.height || bm.naturalHeight;
+      if (!sw || !sh) return;
+      const scale = Math.max(cw / sw, ch / sh);
+      ctx.drawImage(bm, (cw - sw * scale) / 2, (ch - sh * scale) / 2, sw * scale, sh * scale);
     }
 
-    /* Draw frame 101 as soon as it loads (initial state) */
+    /* State updated by scroll, consumed by rAF loop */
     let currentFrame = TOTAL;
-    frames[TOTAL - 1].addEventListener('load', () => { resize(); });
-    if (frames[TOTAL - 1].complete) resize();
-    resize(); /* also fire immediately in case already cached */
+    let targetFrame  = TOTAL;
+    let targetAlpha  = 1;
+    let rafScheduled = false;
 
-    /* Scroll handler */
+    function tick() {
+      rafScheduled = false;
+      if (targetFrame !== currentFrame) {
+        currentFrame = targetFrame;
+        renderFrame(currentFrame);
+      }
+      heroTxt.style.opacity   = targetAlpha;
+      scrollCue.style.opacity = Math.max(0, targetAlpha * 5 - 4); /* fades faster */
+    }
+
     window.addEventListener('scroll', function () {
-      const top        = heroSeq.offsetTop;
+      const top      = heroSeq.offsetTop;
       const scrollable = heroSeq.offsetHeight - window.innerHeight;
-      const progress   = Math.max(0, Math.min(1, (scrollY - top) / scrollable));
+      const progress = Math.max(0, Math.min(1, (scrollY - top) / scrollable));
 
-      /* Reverse order: progress 0 → frame 101, progress 1 → frame 001 */
-      currentFrame = TOTAL - Math.round(progress * (TOTAL - 1));
-      render(currentFrame);
+      /* Reverse: progress 0 → frame 101, progress 1 → frame 001 */
+      targetFrame = TOTAL - Math.round(progress * (TOTAL - 1));
+      targetAlpha = Math.max(0, 1 - progress / 0.2);
 
-      /* Text + cue fade out over first 20% of scroll */
-      const textAlpha = Math.max(0, 1 - progress / 0.2);
-      heroTxt.style.opacity    = textAlpha;
-      scrollCue.style.opacity  = Math.max(0, 1 - progress / 0.08);
+      /* Batch all scroll events into one draw per display frame */
+      if (!rafScheduled) {
+        rafScheduled = true;
+        requestAnimationFrame(tick);
+      }
     }, { passive: true });
+
+    /* Initial size */
+    resize();
   })();
 </script>
 
