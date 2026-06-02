@@ -147,6 +147,7 @@
     object-position: center bottom;
     z-index: 3;
     transition: opacity 0.2s ease;
+    will-change: opacity;
   }
   /* Static layer (background image + text) revealed after video */
   #hero-static {
@@ -396,6 +397,22 @@
   /* ── KEYFRAMES ── */
   @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
   @keyframes scanLine { 0% { left: -100%; } 100% { left: 200%; } }
+  @keyframes loaderPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* ── LOADER ── */
+  #loader {
+    position: fixed; inset: 0; z-index: 99999;
+    background: #0a0806;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.6s ease;
+  }
+  #loader.hidden { opacity: 0; pointer-events: none; }
+  #loader-text {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 18px; letter-spacing: 0.6em; color: #fff;
+    text-shadow: 0 0 8px rgba(255,255,255,0.95), 0 0 20px rgba(255,255,255,0.6), 0 0 40px rgba(255,255,255,0.25);
+    animation: loaderPulse 1.4s ease-in-out infinite;
+  }
 
   /* ── RESPONSIVE ── */
   @media (max-width: 1024px) {
@@ -446,6 +463,8 @@
 </style>
 </head>
 <body>
+
+<div id="loader"><span id="loader-text">LOADING...</span></div>
 
 <div id="cursor"></div>
 <div id="cursor-ring"></div>
@@ -562,7 +581,7 @@
   <div class="properties-grid">
     <div class="prop-card sr">
       <div class="prop-img">
-        <img src="assets/propety1.png" alt="Maison du Lac" class="prop-img-actual" />
+        <img src="assets/propety1.png" alt="Maison du Lac" class="prop-img-actual" loading="lazy" />
         <div class="prop-overlay"></div>
       </div>
       <div class="prop-tag">Private Sale</div>
@@ -579,7 +598,7 @@
 
     <div class="prop-card sr sr-d1">
       <div class="prop-img">
-        <img src="assets/property2.png" alt="Côte Azur Estate" class="prop-img-actual" />
+        <img src="assets/property2.png" alt="Côte Azur Estate" class="prop-img-actual" loading="lazy" />
         <div class="prop-overlay"></div>
       </div>
       <div class="prop-tag">Exclusive</div>
@@ -596,7 +615,7 @@
 
     <div class="prop-card sr sr-d2">
       <div class="prop-img">
-        <img src="assets/property3.png" alt="The Burj Suites" class="prop-img-actual" />
+        <img src="assets/property3.png" alt="The Burj Suites" class="prop-img-actual" loading="lazy" />
         <div class="prop-overlay"></div>
       </div>
       <div class="prop-tag">New Listing</div>
@@ -613,7 +632,7 @@
 
     <div class="prop-card sr sr-d3">
       <div class="prop-img">
-        <img src="assets/property4.png" alt="Palazzo Bianco" class="prop-img-actual" />
+        <img src="assets/property4.png" alt="Palazzo Bianco" class="prop-img-actual" loading="lazy" />
         <div class="prop-overlay"></div>
       </div>
       <div class="prop-tag">By Invitation</div>
@@ -747,6 +766,18 @@
 </footer>
 
 <script>
+  /* ── Loader ── */
+  (function () {
+    const loader = document.getElementById('loader');
+    function hideLoader() {
+      loader.classList.add('hidden');
+      setTimeout(function () { loader.style.display = 'none'; }, 650);
+    }
+    window.addEventListener('load', hideLoader);
+    /* Fallback: hide after 6s no matter what */
+    setTimeout(hideLoader, 6000);
+  })();
+
   /* ── Cursor ── */
   const cursor = document.getElementById('cursor');
   const ring   = document.getElementById('cursor-ring');
